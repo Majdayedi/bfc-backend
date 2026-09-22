@@ -1,0 +1,487 @@
+{
+  "takeaways": [
+    "PKI is not an IT project — it is a national trust infrastructure enabling verifiable identity, secure transactions, and digital sovereignty.",
+    "Without a trust layer, digital services fail to scale: documents are unenforceable, identities are duplicated, and cross-border trade stalls.",
+    "The EU's eIDAS framework demonstrates that legal, technical, and operational layers must be aligned — not sequenced separately.",
+    "Africa's window to leapfrog legacy infrastructure is real, but requires deliberate strategy: sovereignty, interoperability, and use-case targeting must coexist.",
+    "Failure patterns are consistent: PKI treated as IT procurement, no cross-ministry coordination, no integration with real economic use cases."
+  ],
+  "references": [
+    {
+      "label": "EU eIDAS Regulation: Electronic Identification and Trust Services",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation",
+      "author": "European Commission",
+      "year": "2023"
+    },
+    {
+      "label": "UNCITRAL: Model Law on Electronic Signatures",
+      "url": "https://uncitral.un.org/en/texts/ecommerce/modellaw/electronic_signatures",
+      "author": "UNCITRAL",
+      "year": "2001"
+    },
+    {
+      "label": "World Bank: Digital Development Overview",
+      "url": "https://www.worldbank.org/en/topic/digitaldevelopment",
+      "author": "World Bank",
+      "year": "2024"
+    },
+    {
+      "label": "AfCFTA: Continental Free Trade Agreement Portal",
+      "url": "https://au-afcfta.org/",
+      "author": "African Union Commission",
+      "year": "2023"
+    },
+    {
+      "label": "GSMA: Digital Identity Programme",
+      "url": "https://www.gsma.com/identity/",
+      "author": "GSMA",
+      "year": "2023"
+    }
+  ],
+  "relatedProjects": [
+    {
+      "id": 2,
+      "title": "Technical assistance for PKI legal framework and e-certification",
+      "country": "Mauritania",
+      "flag": "https://flagcdn.com/w40/mr.png"
+    },
+    {
+      "id": 6,
+      "title": "Strategic plan for private investment and APIP business plan",
+      "country": "Guinea",
+      "flag": "https://flagcdn.com/w40/gn.png"
+    }
+  ],
+  "sections": [
+    {
+      "title": "Why PKI Has Moved from Technical Topic to Strategic Priority",
+      "blocks": [
+        {
+          "id": "bp49db9",
+          "type": "h2",
+          "content": "Why PKI Has Moved from Technical Topic to Strategic Priority"
+        },
+        {
+          "id": "vpuwjw7",
+          "type": "paragraph",
+          "content": "Across Africa and MENA, governments are accelerating:"
+        },
+        {
+          "id": "ip7jw4g",
+          "type": "paragraph",
+          "content": "• Digital identity programs"
+        },
+        {
+          "id": "onj8ox7",
+          "type": "paragraph",
+          "content": "• E-government platforms"
+        },
+        {
+          "id": "svvzm4z",
+          "type": "paragraph",
+          "content": "• Digital payments ecosystems"
+        },
+        {
+          "id": "pv9sfm1",
+          "type": "paragraph",
+          "content": "Yet many of these initiatives stall at scale for one reason: Trust is not embedded in the infrastructure."
+        },
+        {
+          "id": "qtk0j7t",
+          "type": "paragraph",
+          "content": "PKI is often introduced late—treated as a compliance layer rather than a foundational design choice."
+        },
+        {
+          "id": "5ewhqc0",
+          "type": "paragraph",
+          "content": "This is a strategic mistake."
+        },
+        {
+          "id": "tk862hq",
+          "type": "paragraph",
+          "content": "Without a national trust infrastructure:"
+        },
+        {
+          "id": "m91k6vi",
+          "type": "paragraph",
+          "content": "• Digital services cannot scale securely"
+        },
+        {
+          "id": "qe5h22s",
+          "type": "paragraph",
+          "content": "• Cross-border recognition remains limited"
+        },
+        {
+          "id": "zu43rms",
+          "type": "paragraph",
+          "content": "• Legal enforceability of digital transactions is weak"
+        }
+      ]
+    },
+    {
+      "title": "What Decision-Makers Need to Understand (Beyond the Technical Definition)",
+      "blocks": [
+        {
+          "id": "868nzzg",
+          "type": "h2",
+          "content": "What Decision-Makers Need to Understand (Beyond the Technical Definition)"
+        },
+        {
+          "id": "2wneqe1",
+          "type": "paragraph",
+          "content": "PKI is not about certificates. It is about enabling three things at national level:"
+        },
+        {
+          "id": "b629kzy",
+          "type": "paragraph",
+          "content": "1. Verifiable Identity"
+        },
+        {
+          "id": "i9d92ay",
+          "type": "paragraph",
+          "content": "Ensuring that:"
+        },
+        {
+          "id": "geeorf0",
+          "type": "paragraph",
+          "content": "• A citizen is who they claim to be"
+        },
+        {
+          "id": "8kohrir",
+          "type": "paragraph",
+          "content": "• A business is legally recognized"
+        },
+        {
+          "id": "3e0tfdb",
+          "type": "paragraph",
+          "content": "• A public official can act digitally with authority"
+        },
+        {
+          "id": "58plg1d",
+          "type": "paragraph",
+          "content": "2. Transaction Integrity"
+        },
+        {
+          "id": "ozuhube",
+          "type": "paragraph",
+          "content": "Guaranteeing that:"
+        },
+        {
+          "id": "a5q6rll",
+          "type": "paragraph",
+          "content": "• Documents are not altered"
+        },
+        {
+          "id": "gcbyhqc",
+          "type": "paragraph",
+          "content": "• Contracts are enforceable"
+        },
+        {
+          "id": "an8ioj4",
+          "type": "paragraph",
+          "content": "• Communications are secure"
+        },
+        {
+          "id": "qtcg69w",
+          "type": "paragraph",
+          "content": "3. Institutional Trust"
+        },
+        {
+          "id": "9fmwlj9",
+          "type": "paragraph",
+          "content": "• Clear liability frameworks — defining who is accountable when digital interactions fail or are disputed"
+        },
+        {
+          "id": "hm63omx",
+          "type": "paragraph",
+          "content": "• Data protection regulations — legal assurance that personal and business data is safeguarded"
+        },
+        {
+          "id": "u7ldqy7",
+          "type": "paragraph",
+          "content": "Examples:"
+        },
+        {
+          "id": "e85w077",
+          "type": "paragraph",
+          "content": "• The EU’s eIDAS framework is often referenced because it aligns legal, technical, and operational layers"
+        },
+        {
+          "id": "n3o93l2",
+          "type": "paragraph",
+          "content": "• Several African countries have adopted e-signature laws, but implementation gaps remain significant"
+        },
+        {
+          "id": "imr9x3m",
+          "type": "paragraph",
+          "content": "(Source: World Bank Digital Development, UNCITRAL Model Law on Electronic Signatures)"
+        }
+      ]
+    },
+    {
+      "title": "Where PKI Actually Creates Measurable Value",
+      "blocks": [
+        {
+          "id": "k3v98gx",
+          "type": "h2",
+          "content": "Where PKI Actually Creates Measurable Value"
+        },
+        {
+          "id": "8newuge",
+          "type": "paragraph",
+          "content": "1. Tax and Public Finance"
+        },
+        {
+          "id": "44qxd58",
+          "type": "paragraph",
+          "content": "• Secure digital filing — taxpayers authenticate directly, eliminating document forgery"
+        },
+        {
+          "id": "ifnc2k6",
+          "type": "paragraph",
+          "content": "• Reduced fraud — cryptographic signatures make falsified declarations detectable"
+        },
+        {
+          "id": "n5us9uh",
+          "type": "paragraph",
+          "content": "• Faster processing — digital submissions remove manual review and paper-based bottlenecks"
+        },
+        {
+          "id": "b969cik",
+          "type": "paragraph",
+          "content": "2. Public Procurement"
+        },
+        {
+          "id": "8zwn0sz",
+          "type": "paragraph",
+          "content": "• Transparent, auditable bidding"
+        },
+        {
+          "id": "95x9w9m",
+          "type": "paragraph",
+          "content": "• Reduced corruption risks"
+        },
+        {
+          "id": "ypnqd9s",
+          "type": "paragraph",
+          "content": "3. Financial Services"
+        },
+        {
+          "id": "6ltgqu9",
+          "type": "paragraph",
+          "content": "• KYC automation — verified digital identities replace manual document checks at scale"
+        },
+        {
+          "id": "dg0j057",
+          "type": "paragraph",
+          "content": "• Secure onboarding — cryptographically authenticated enrollment, no physical presence required"
+        },
+        {
+          "id": "qzljz3d",
+          "type": "paragraph",
+          "content": "• Regulatory compliance — auditable digital trails satisfy AML and prudential requirements"
+        },
+        {
+          "id": "c0fn1jz",
+          "type": "paragraph",
+          "content": "4. Cross-Border Trade"
+        },
+        {
+          "id": "vb0nmvb",
+          "type": "paragraph",
+          "content": "• Digital certificates of origin"
+        },
+        {
+          "id": "71q785d",
+          "type": "paragraph",
+          "content": "• Alignment with AfCFTA ambitions"
+        }
+      ]
+    },
+    {
+      "title": "The Most Common Failure Patterns",
+      "blocks": [
+        {
+          "id": "5rt1pm5",
+          "type": "h2",
+          "content": "The Most Common Failure Patterns"
+        },
+        {
+          "id": "v4hhlmn",
+          "type": "paragraph",
+          "content": "Let’s be direct—these are recurring across multiple countries:"
+        },
+        {
+          "id": "n5rplw5",
+          "type": "paragraph",
+          "content": "• PKI treated as an IT project, not a national program"
+        },
+        {
+          "id": "plujgcu",
+          "type": "paragraph",
+          "content": "• Lack of coordination between: telecom regulators, central banks, justice ministries"
+        },
+        {
+          "id": "ppp8uon",
+          "type": "paragraph",
+          "content": "• Over-engineered systems with low adoption"
+        },
+        {
+          "id": "6by7mxv",
+          "type": "paragraph",
+          "content": "• No integration with real use cases (tax, identity, payments)"
+        },
+        {
+          "id": "91xut39",
+          "type": "paragraph",
+          "content": "Result: High investment, minimal impact"
+        }
+      ]
+    },
+    {
+      "title": "Strategic Sequencing: Where to Start",
+      "blocks": [
+        {
+          "id": "4oq7w79",
+          "type": "h2",
+          "content": "Strategic Sequencing: Where to Start"
+        },
+        {
+          "id": "pi9j7wo",
+          "type": "paragraph",
+          "content": "Governments that succeed do not start with infrastructure alone. They start with high-impact use cases:"
+        },
+        {
+          "id": "p2aeqbv",
+          "type": "paragraph",
+          "content": "1. Digital identity integration"
+        },
+        {
+          "id": "zvmklo6",
+          "type": "paragraph",
+          "content": "2. Tax and business registration"
+        },
+        {
+          "id": "lzvev6o",
+          "type": "paragraph",
+          "content": "3. Government-to-business transactions"
+        },
+        {
+          "id": "gtui781",
+          "type": "paragraph",
+          "content": "Then scale PKI as:"
+        },
+        {
+          "id": "7gz2xwk",
+          "type": "paragraph",
+          "content": "• Demand increases — adoption grows as citizens and businesses engage with digital services"
+        },
+        {
+          "id": "bvpbejg",
+          "type": "paragraph",
+          "content": "• Legal frameworks mature — e-signature laws and data protection regulations take effect"
+        }
+      ]
+    },
+    {
+      "title": "Sovereignty vs Interoperability: The African Context",
+      "blocks": [
+        {
+          "id": "z2a0mka",
+          "type": "h2",
+          "content": "Sovereignty vs Interoperability: The African Context"
+        },
+        {
+          "id": "x7igkd9",
+          "type": "paragraph",
+          "content": "A critical tension:"
+        },
+        {
+          "id": "38xe497",
+          "type": "paragraph",
+          "content": "• Full sovereignty → control, but isolation risk"
+        },
+        {
+          "id": "gnib11m",
+          "type": "paragraph",
+          "content": "• Full interoperability → scale, but dependency risk"
+        },
+        {
+          "id": "cnh8twq",
+          "type": "paragraph",
+          "content": "With initiatives like the AfCFTA, the direction is clear: Future systems must be interoperable by design, not retrofitted later."
+        }
+      ]
+    },
+    {
+      "title": "BFC Perspective",
+      "blocks": [
+        {
+          "id": "z8t00kc",
+          "type": "h2",
+          "content": "BFC Perspective"
+        },
+        {
+          "id": "ju2smge",
+          "type": "paragraph",
+          "content": "In our work across Africa and MENA, the issue is rarely technical. It is:"
+        },
+        {
+          "id": "4h0ouit",
+          "type": "paragraph",
+          "content": "• Institutional alignment — ministries, regulators, and agencies working from a shared roadmap"
+        },
+        {
+          "id": "6gx77sl",
+          "type": "paragraph",
+          "content": "• Governance clarity — defined roles, responsibilities, and decision rights across all stakeholders"
+        },
+        {
+          "id": "44ngx8z",
+          "type": "paragraph",
+          "content": "• Sequencing of investments — building the trust layer before scaling dependent digital services"
+        },
+        {
+          "id": "zjthb5i",
+          "type": "paragraph",
+          "content": "PKI should not be sold as infrastructure — it should be positioned as a national trust layer enabling economic activity, regulatory enforcement, and digital sovereignty."
+        }
+      ]
+    },
+    {
+      "title": "Conclusion",
+      "blocks": [
+        {
+          "id": "a5tzhbg",
+          "type": "h2",
+          "content": "Conclusion"
+        },
+        {
+          "id": "1f4jvqx",
+          "type": "paragraph",
+          "content": "PKI is not urgent because it is complex. It is urgent because everything else depends on it."
+        },
+        {
+          "id": "l3kt293",
+          "type": "paragraph",
+          "content": "Countries that delay its strategic integration will:"
+        },
+        {
+          "id": "a5m4708",
+          "type": "paragraph",
+          "content": "• Struggle to scale digital services"
+        },
+        {
+          "id": "9qff5h9",
+          "type": "paragraph",
+          "content": "• Face increasing cybersecurity risks"
+        },
+        {
+          "id": "jvon8iv",
+          "type": "paragraph",
+          "content": "• Remain limited in cross-border digital trade"
+        }
+      ]
+    }
+  ]
+}
