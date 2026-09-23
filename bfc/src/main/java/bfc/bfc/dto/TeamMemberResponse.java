@@ -26,5 +26,7 @@ public class TeamMemberResponse {
     private Integer displayOrder;
     private Boolean showPrimaryFlag;
 
+    private List<TeamMemberRole> roleTypes;
+
     private List<ExtraFlag> extraFlags;
 }

@@ -4,6 +4,7 @@ import bfc.bfc.dto.TeamMemberRequest;
 import bfc.bfc.dto.TeamMemberResponse;
 import bfc.bfc.entities.ExtraFlag;
 import bfc.bfc.entities.TeamMember;
+import bfc.bfc.entities.TeamMemberRole;
 import bfc.bfc.repository.TeamMemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +18,11 @@ import java.util.stream.Collectors;
 public class TeamMemberService {
 
     private final TeamMemberRepository repository;
+    private final bfc.bfc.repositories.RepresentativeRepository representativeRepository;
 
-    public TeamMemberService(TeamMemberRepository repository) {
+    public TeamMemberService(TeamMemberRepository repository, bfc.bfc.repositories.RepresentativeRepository representativeRepository) {
         this.repository = repository;
+        this.representativeRepository = representativeRepository;
     }
 
     public List<TeamMemberResponse> getAll() {
@@ -41,6 +44,9 @@ public class TeamMemberService {
         if (member.getDisplayOrder() == null) {
             member.setDisplayOrder(repository.findMaxDisplayOrder() + 1);
         }
+        if (member.getRoleTypes() != null && !member.getRoleTypes().isEmpty() && member.getRoleType() == null) {
+            member.setRoleType(member.getRoleTypes().get(0));
+        }
         return toResponse(repository.save(member));
     }
 
@@ -51,7 +57,8 @@ public class TeamMemberService {
 
         existing.setName(request.getName());
         existing.setRole(request.getRole());
-        existing.setRoleType(request.getRoleType());
+        existing.setRoleType(request.getRoleTypes() != null && !request.getRoleTypes().isEmpty()
+                ? request.getRoleTypes().get(0) : existing.getRoleType());
         existing.setImg(request.getImg());
         existing.setEmail(request.getEmail());
         existing.setPhone(request.getPhone());
@@ -60,6 +67,7 @@ public class TeamMemberService {
         existing.setCountryFlagUrl(request.getCountryFlagUrl());
         existing.setDisplayOrder(request.getDisplayOrder());
         existing.setShowPrimaryFlag(request.getShowPrimaryFlag() != null ? request.getShowPrimaryFlag() : true);
+        existing.setRoleTypes(request.getRoleTypes() != null ? request.getRoleTypes() : existing.getRoleTypes());
         existing.setExtraFlags(request.getExtraFlags() != null ? request.getExtraFlags() : new ArrayList<>());
 
         return toResponse(repository.save(existing));
@@ -79,19 +87,29 @@ public class TeamMemberService {
 
     @Transactional
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("Team member not found with id: " + id);
-        }
-        repository.deleteById(id);
+        TeamMember member = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Team member not found with id: " + id));
+
+        // Unlink from any Representative where this member is set as manager
+        representativeRepository.findAll().forEach(rep -> {
+            if (rep.getManager() != null && id.equals(rep.getManager().getId())) {
+                rep.setManager(null);
+                representativeRepository.save(rep);
+            }
+        });
+
+        repository.delete(member);
     }
 
     private TeamMemberResponse toResponse(TeamMember member) {
         List<ExtraFlag> flags = member.getExtraFlags();
+        List<TeamMemberRole> roleTypes = member.getRoleTypes() != null ? member.getRoleTypes() : new ArrayList<>();
         return TeamMemberResponse.builder()
                 .id(member.getId())
                 .name(member.getName())
                 .role(member.getRole())
                 .roleType(member.getRoleType())
+                .roleTypes(roleTypes)
                 .img(member.getImg())
                 .email(member.getEmail())
                 .phone(member.getPhone())
@@ -105,10 +123,12 @@ public class TeamMemberService {
     }
 
     private TeamMember toEntity(TeamMemberRequest request) {
+        List<TeamMemberRole> roleTypes = request.getRoleTypes() != null ? request.getRoleTypes() : new ArrayList<>();
         return TeamMember.builder()
                 .name(request.getName())
                 .role(request.getRole())
-                .roleType(request.getRoleType())
+                .roleType(roleTypes.isEmpty() ? request.getRoleType() : roleTypes.get(0))
+                .roleTypes(roleTypes)
                 .img(request.getImg())
                 .email(request.getEmail())
                 .phone(request.getPhone())

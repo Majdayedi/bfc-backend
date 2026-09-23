@@ -37,5 +37,7 @@ public class TeamMemberRequest {
 
     private Boolean showPrimaryFlag;
 
+    private List<TeamMemberRole> roleTypes;
+
     private List<ExtraFlag> extraFlags;
 }

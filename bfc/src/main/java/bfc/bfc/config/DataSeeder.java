@@ -18,18 +18,34 @@ import bfc.bfc.entities.Representative;
 import bfc.bfc.repositories.RepresentativeRepository;
 import bfc.bfc.entities.ServicePage;
 import bfc.bfc.repositories.ServicePageRepository;
+import bfc.bfc.entities.Partner;
+import bfc.bfc.entities.ClientLogo;
 import bfc.bfc.entities.JourneyStep;
+import bfc.bfc.entities.ContactServiceOption;
+import bfc.bfc.repository.PartnerRepository;
+import bfc.bfc.repository.ClientLogoRepository;
+import bfc.bfc.repositories.ContactServiceOptionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -44,9 +60,18 @@ public class DataSeeder implements CommandLineRunner {
     private final HistoryEventRepository historyEventRepository;
     private final RepresentativeRepository representativeRepository;
     private final ServicePageRepository servicePageRepository;
+    private final PartnerRepository partnerRepository;
+    private final ClientLogoRepository clientLogoRepository;
+    private final ContactServiceOptionRepository contactServiceOptionRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public DataSeeder(UserRepository userRepository, 
+    @Value("${app.file.upload-dir:uploads}")
+    private String uploadDir;
+
+    @Value("${app.seed.frontend-assets:}")
+    private String frontendAssetsOverride;
+
+    public DataSeeder(UserRepository userRepository,
                       TeamMemberRepository teamMemberRepository, 
                       ArticleRepository articleRepository,
                       CourseRepository courseRepository,
@@ -54,6 +79,9 @@ public class DataSeeder implements CommandLineRunner {
                       HistoryEventRepository historyEventRepository,
                       RepresentativeRepository representativeRepository,
                       ServicePageRepository servicePageRepository,
+                      PartnerRepository partnerRepository,
+                      ClientLogoRepository clientLogoRepository,
+                      ContactServiceOptionRepository contactServiceOptionRepository,
                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
@@ -63,6 +91,9 @@ public class DataSeeder implements CommandLineRunner {
         this.historyEventRepository = historyEventRepository;
         this.representativeRepository = representativeRepository;
         this.servicePageRepository = servicePageRepository;
+        this.partnerRepository = partnerRepository;
+        this.clientLogoRepository = clientLogoRepository;
+        this.contactServiceOptionRepository = contactServiceOptionRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -87,7 +118,29 @@ public class DataSeeder implements CommandLineRunner {
             seedTeamMembers();
             log.info("Team members seeded successfully");
         } else {
-            log.info("Team members already exist, skipping seed");
+            // Backfill roleTypes and countryFlagUrl on existing members
+            List<TeamMember> allMembers = teamMemberRepository.findAll();
+            boolean updated = false;
+            for (TeamMember m : allMembers) {
+                if (m.getRoleTypes() == null || m.getRoleTypes().isEmpty()) {
+                    List<TeamMemberRole> roles = new ArrayList<>();
+                    if (m.getRoleType() != null) {
+                        roles.add(m.getRoleType());
+                    }
+                    m.setRoleTypes(roles);
+                    updated = true;
+                }
+                if (m.getCountryFlagUrl() == null || m.getCountryFlagUrl().isBlank()) {
+                    String flagUrl = resolveFlagUrl(m.getCountryName());
+                    if (flagUrl != null) {
+                        m.setCountryFlagUrl(flagUrl);
+                        updated = true;
+                    }
+                }
+                teamMemberRepository.save(m);
+            }
+            if (updated) log.info("Backfilled roleTypes and countryFlagUrl on existing team members");
+            else log.info("Team members already have roleTypes and countryFlagUrl, skipping seed");
         }
 
         // Seed articles
@@ -106,28 +159,309 @@ public class DataSeeder implements CommandLineRunner {
             log.info("Projects already exist, skipping seed");
         }
 
-        // Seed service pages (only if empty)
+        // Seed service pages (only if empty); otherwise backfill empty content
         if (servicePageRepository.count() == 0) {
             seedServicePages();
             log.info("Service pages seeded successfully");
         } else {
-            log.info("Service pages already exist, skipping seed");
+            backfillEmptyServicePages();
+            log.info("Service pages already exist, empty content backfilled if needed");
         }
 
-        // Seed courses / certifications (forced clear and seed for testing)
-        courseRepository.deleteAll();
-        seedCourses();
-        log.info("Courses seeded successfully");
+        // Seed courses once
+        if (courseRepository.count() == 0) {
+            seedCourses();
+            log.info("Courses seeded successfully");
+        } else {
+            log.info("Courses already exist, skipping seed");
+        }
 
-        // Seed history events (forced clear and seed for testing)
-        historyEventRepository.deleteAll();
-        seedHistoryEvents();
-        log.info("History events re-seeded successfully");
+        // Seed history events once (do not wipe; reps may add their own events)
+        if (historyEventRepository.count() == 0) {
+            seedHistoryEvents();
+            log.info("History events seeded successfully");
+        } else {
+            log.info("History events already exist, skipping seed");
+        }
 
-        // Seed representatives
-        representativeRepository.deleteAll();
-        seedRepresentatives();
-        log.info("Representatives re-seeded successfully");
+        // Seed representatives + flags once — never reseed
+        if (representativeRepository.count() == 0) {
+            seedRepresentatives();
+            log.info("Representatives seeded successfully");
+        } else {
+            log.info("Representatives already exist, skipping seed");
+        }
+
+        // One-time photo seed from frontend src/assets (clients + partners)
+        seedClientLogos();
+        seedPartners();
+
+        // One-time consulting service options for the contact form
+        if (contactServiceOptionRepository.count() == 0) {
+            seedContactServiceOptions();
+            log.info("Contact service options seeded successfully");
+        } else {
+            log.info("Contact service options already exist, skipping seed");
+        }
+    }
+
+    private void seedContactServiceOptions() {
+        List<ContactServiceOption> options = List.of(
+            ContactServiceOption.builder().value("Training").label("Training").displayOrder(1).build(),
+            ContactServiceOption.builder().value("Consulting").label("Consulting").displayOrder(2).build(),
+            ContactServiceOption.builder().value("Audit").label("Audit").displayOrder(3).build(),
+            ContactServiceOption.builder().value("Tax and Legal").label("Tax and Legal").displayOrder(4).build(),
+            ContactServiceOption.builder().value("Expertise").label("Expertise").displayOrder(5).build(),
+            ContactServiceOption.builder().value("Collaboration").label("Collaboration").displayOrder(6).build(),
+            ContactServiceOption.builder().value("Other").label("Other").displayOrder(7).build()
+        );
+        contactServiceOptionRepository.saveAll(options);
+    }
+
+    /**
+     * One-time seed: copy global client logos from
+     * bfc-consulting-innovation/src/assets/Logo references into uploads/clients
+     * and insert client_logos rows (only when empty or logo files are missing).
+     */
+    private void seedClientLogos() {
+        try {
+            Path assets = resolveFrontendAssetsDir();
+            if (assets == null) {
+                log.warn("Frontend assets directory not found; skipping client logo photo seed");
+                return;
+            }
+
+            Path sourceDir = assets.resolve("Logo references");
+            Path destDir = Paths.get(uploadDir, "clients");
+            if (!Files.isDirectory(sourceDir)) {
+                log.warn("Client logo source not found: {}", sourceDir);
+                return;
+            }
+            Files.createDirectories(destDir);
+
+            Map<String, String> seeded = new LinkedHashMap<>(); // safeFilename -> public url
+            try (Stream<Path> files = Files.list(sourceDir)) {
+                files.filter(DataSeeder::isImageFile)
+                     .sorted()
+                     .forEach(file -> {
+                         try {
+                             String safeName = toSafeFilename(file.getFileName().toString());
+                             Path dest = destDir.resolve(safeName);
+                             if (!Files.exists(dest)) {
+                                 Files.copy(file, dest, StandardCopyOption.REPLACE_EXISTING);
+                             }
+                             seeded.put(safeName, "/uploads/clients/" + safeName);
+                         } catch (IOException e) {
+                             log.warn("Failed to copy client logo {}: {}", file, e.getMessage());
+                         }
+                     });
+            }
+
+            if (seeded.isEmpty()) {
+                log.warn("No client logo images found in {}", sourceDir);
+                return;
+            }
+
+            boolean empty = clientLogoRepository.count() == 0;
+            boolean broken = clientLogoRepository.findAll().stream()
+                    .anyMatch(c -> !logoFileExists(c.getLogoUrl()));
+            if (!empty && !broken) {
+                log.info("Client logos already seeded and files present, skipping");
+                return;
+            }
+
+            if (!empty) {
+                clientLogoRepository.deleteAll();
+                log.info("Client logo rows had missing photo files; re-seeding from src/assets");
+            }
+
+            List<ClientLogo> rows = new ArrayList<>();
+            int order = 1;
+            for (Map.Entry<String, String> entry : seeded.entrySet()) {
+                rows.add(new ClientLogo(displayNameForClient(entry.getKey()), entry.getValue(), order++));
+            }
+            clientLogoRepository.saveAll(rows);
+            log.info("Client logos seeded from assets: {}", rows.size());
+        } catch (Exception e) {
+            log.error("Client logo photo seed failed", e);
+        }
+    }
+
+    /**
+     * One-time seed: copy partner photos from src/assets/certif (+ reanda.png)
+     * into uploads/certif and insert partners rows (only when empty or files missing).
+     */
+    private void seedPartners() {
+        try {
+            Path assets = resolveFrontendAssetsDir();
+            if (assets == null) {
+                log.warn("Frontend assets directory not found; skipping partner photo seed");
+                return;
+            }
+
+            Path destDir = Paths.get(uploadDir, "certif");
+            Files.createDirectories(destDir);
+
+            Map<String, String> preferredNames = new LinkedHashMap<>();
+            preferredNames.put("reanda.png", "Reanda international network");
+            preferredNames.put("ici.png", "Internal Control Institute");
+            preferredNames.put("irm.png", "Institute of Risk Management");
+            preferredNames.put("global_innovation_insititute.png", "GINI");
+            preferredNames.put("tabc.png", "Tunisia africa business council");
+
+            // Preferred order first, then any remaining images from certif/
+            List<Path> sources = new ArrayList<>();
+            Path reanda = assets.resolve("reanda.png");
+            if (Files.isRegularFile(reanda)) {
+                sources.add(reanda);
+            }
+            Path certifDir = assets.resolve("certif");
+            if (Files.isDirectory(certifDir)) {
+                try (Stream<Path> files = Files.list(certifDir)) {
+                    files.filter(DataSeeder::isImageFile)
+                         .sorted()
+                         .forEach(sources::add);
+                }
+            }
+
+            Map<String, String> seeded = new LinkedHashMap<>(); // safeFilename -> public url
+            for (Path source : sources) {
+                try {
+                    String safeName = toSafeFilename(source.getFileName().toString());
+                    Path dest = destDir.resolve(safeName);
+                    if (!Files.exists(dest)) {
+                        Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    seeded.put(safeName, "/uploads/certif/" + safeName);
+                } catch (IOException e) {
+                    log.warn("Failed to copy partner photo {}: {}", source, e.getMessage());
+                }
+            }
+
+            if (seeded.isEmpty()) {
+                log.warn("No partner images found under {}", assets);
+                return;
+            }
+
+            boolean empty = partnerRepository.count() == 0;
+            boolean broken = partnerRepository.findAll().stream()
+                    .allMatch(p -> !logoFileExists(p.getLogoUrl()));
+            if (!empty && !broken) {
+                log.info("Partners already seeded and photo files present, skipping");
+                return;
+            }
+
+            if (!empty) {
+                partnerRepository.deleteAll();
+                log.info("Partner rows had missing photo files; re-seeding from src/assets");
+            }
+
+            List<Partner> rows = new ArrayList<>();
+            int order = 1;
+            for (Map.Entry<String, String> entry : seeded.entrySet()) {
+                String display = preferredNames.getOrDefault(entry.getKey().toLowerCase(Locale.ROOT),
+                        displayNameFromFilename(entry.getKey()));
+                rows.add(new Partner(display, entry.getValue(), order++));
+            }
+            partnerRepository.saveAll(rows);
+            log.info("Partners seeded from assets: {}", rows.size());
+        } catch (Exception e) {
+            log.error("Partner photo seed failed", e);
+        }
+    }
+
+    private Path resolveFrontendAssetsDir() {
+        List<Path> candidates = new ArrayList<>();
+        if (frontendAssetsOverride != null && !frontendAssetsOverride.isBlank()) {
+            candidates.add(Paths.get(frontendAssetsOverride));
+        }
+        candidates.add(Paths.get("..", "..", "bfc-consulting-innovation", "src", "assets"));
+        candidates.add(Paths.get("..", "bfc-consulting-innovation", "src", "assets"));
+        candidates.add(Paths.get("bfc-consulting-innovation", "src", "assets"));
+        candidates.add(Paths.get("..", "..", "..", "bfc-consulting-innovation", "src", "assets"));
+
+        for (Path candidate : candidates) {
+            Path normalized = candidate.toAbsolutePath().normalize();
+            if (Files.isDirectory(normalized)) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private boolean logoFileExists(String logoUrl) {
+        if (logoUrl == null || logoUrl.isBlank()) {
+            return false;
+        }
+        String relative = logoUrl;
+        if (relative.startsWith("/uploads/")) {
+            relative = relative.substring("/uploads/".length());
+        } else if (relative.startsWith("uploads/")) {
+            relative = relative.substring("uploads/".length());
+        } else if (relative.startsWith("/")) {
+            relative = relative.substring(1);
+        }
+        if (relative.startsWith("http")) {
+            return true;
+        }
+        return Files.exists(Paths.get(uploadDir, relative));
+    }
+
+    private static boolean isImageFile(Path path) {
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        return name.endsWith(".png") || name.endsWith(".jpg")
+                || name.endsWith(".jpeg") || name.endsWith(".webp")
+                || name.endsWith(".gif") || name.endsWith(".svg");
+    }
+
+    private static String toSafeFilename(String original) {
+        int dot = original.lastIndexOf('.');
+        String stem = dot >= 0 ? original.substring(0, dot) : original;
+        String ext = dot >= 0 ? original.substring(dot).toLowerCase(Locale.ROOT) : "";
+        stem = stem.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("_+", "_").replaceAll("^_|_$", "");
+        return stem + ext;
+    }
+
+    private static String displayNameForClient(String safeFilename) {
+        String stem = safeFilename.contains(".")
+                ? safeFilename.substring(0, safeFilename.lastIndexOf('.'))
+                : safeFilename;
+        switch (stem) {
+            case "world_bank": return "World Bank Group";
+            case "giz_standard_logo_1": return "GIZ";
+            case "expertise_france": return "Expertise France";
+            case "uemoa": return "UEMOA";
+            case "stb_bank": return "STB Bank";
+            case "ooredoo_tunisie": return "Ooredoo";
+            case "banque_atlantique": return "Banque Atlantique";
+            case "amf_umoa": return "AMF UEMOA";
+            default: return displayNameFromFilename(safeFilename);
+        }
+    }
+
+    private static String displayNameFromFilename(String safeFilename) {
+        String stem = safeFilename.contains(".")
+                ? safeFilename.substring(0, safeFilename.lastIndexOf('.'))
+                : safeFilename;
+        String[] words = stem.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            if (words[i].length() <= 3 && words[i].equals(words[i].toUpperCase(Locale.ROOT))) {
+                sb.append(words[i]);
+            } else {
+                sb.append(Character.toUpperCase(words[i].charAt(0)));
+                if (words[i].length() > 1) {
+                    sb.append(words[i].substring(1));
+                }
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : stem;
     }
 
     private void seedHistoryEvents() {
@@ -276,6 +610,13 @@ public class DataSeeder implements CommandLineRunner {
                 String managerName = rep.getManager() != null && rep.getManager().getName() != null ? rep.getManager().getName() : "";
                 String encodedDesc = baseDesc + "::link=/representatives/" + rep.getSlug() + "::email=" + managerEmail + "::managerName=" + managerName;
 
+                HistoryEvent existing = historyEventRepository.findAll().stream()
+                        .filter(e -> rep.getTitle() != null && rep.getTitle().equals(e.getTitle()))
+                        .findFirst().orElse(null);
+                if (existing != null) {
+                    continue;
+                }
+
                 HistoryEvent event = HistoryEvent.builder()
                         .eventYear(rep.getCreationYear() != null ? rep.getCreationYear() : 2022)
                         .title(rep.getTitle())
@@ -305,6 +646,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(1)
                 .showPrimaryFlag(true)
                 .roleType(TeamMemberRole.CEO)
+                .roleTypes(List.of(TeamMemberRole.CEO, TeamMemberRole.MANAGING_PARTNER))
                 .build(),
 
             TeamMember.builder()
@@ -319,6 +661,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(2)
                 .showPrimaryFlag(true)
                 .roleType(TeamMemberRole.ASSOCIATE)
+                .roleTypes(List.of(TeamMemberRole.ASSOCIATE))
                 .build(),
 
             TeamMember.builder()
@@ -333,6 +676,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(3)
                 .showPrimaryFlag(true)
                 .roleType(TeamMemberRole.COUNTRY_MANAGER)
+                .roleTypes(List.of(TeamMemberRole.COUNTRY_MANAGER))
                 .build(),
 
             TeamMember.builder()
@@ -347,6 +691,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(4)
                 .showPrimaryFlag(true)
                 .roleType(TeamMemberRole.COUNTRY_MANAGER)
+                .roleTypes(List.of(TeamMemberRole.COUNTRY_MANAGER))
                 .extraFlags(List.of(new ExtraFlag("Mali", "https://flagcdn.com/w80/ml.png")))
                 .build(),
 
@@ -362,6 +707,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(5)
                 .showPrimaryFlag(false)
                 .roleType(TeamMemberRole.CONSULTANT)
+                .roleTypes(List.of(TeamMemberRole.CONSULTANT))
                 .build(),
 
             TeamMember.builder()
@@ -376,6 +722,7 @@ public class DataSeeder implements CommandLineRunner {
                 .displayOrder(6)
                 .showPrimaryFlag(true)
                 .roleType(TeamMemberRole.AUDITING_ACCOUNTANT)
+                .roleTypes(List.of(TeamMemberRole.AUDITING_ACCOUNTANT))
                 .build(),
         };
 
@@ -644,5 +991,76 @@ public class DataSeeder implements CommandLineRunner {
         } catch (Exception e) {
             log.error("Failed to seed service pages: ", e);
         }
+    }
+
+    private void backfillEmptyServicePages() {
+        try {
+            String json = loadJsonFromResource("seed/services.json");
+            ObjectMapper mapper = new ObjectMapper();
+            List<Map<String, Object>> pages = mapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+            for (Map<String, Object> map : pages) {
+                String slug = (String) map.get("slug");
+                ServicePage existing = servicePageRepository.findBySlug(slug).orElse(null);
+                if (existing == null) {
+                    String contentJsonStr = mapper.writeValueAsString(map.get("contentJson"));
+                    ServicePage page = ServicePage.builder()
+                            .slug(slug)
+                            .title((String) map.get("title"))
+                            .subtitle((String) map.get("subtitle"))
+                            .description((String) map.get("description"))
+                            .layoutType((String) map.get("layoutType"))
+                            .contentJson(contentJsonStr)
+                            .build();
+                    servicePageRepository.save(page);
+                    log.info("Backfilled missing service page: {}", slug);
+                    continue;
+                }
+                if (isBlankServiceContent(existing.getContentJson())) {
+                    existing.setContentJson(mapper.writeValueAsString(map.get("contentJson")));
+                    if (existing.getTitle() == null || existing.getTitle().isBlank()) {
+                        existing.setTitle((String) map.get("title"));
+                    }
+                    if (existing.getDescription() == null || existing.getDescription().isBlank()) {
+                        existing.setDescription((String) map.get("description"));
+                    }
+                    if (existing.getLayoutType() == null || existing.getLayoutType().isBlank()) {
+                        existing.setLayoutType((String) map.get("layoutType"));
+                    }
+                    servicePageRepository.save(existing);
+                    log.info("Backfilled empty content for service page: {}", slug);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to backfill service pages: ", e);
+        }
+    }
+
+    private static final java.util.Map<String, String> COUNTRY_FLAG_URLS = Map.of(
+        "Republic of the Congo", "https://flagcdn.com/w80/cg.png",
+        "Guinea", "https://flagcdn.com/w80/gn.png",
+        "Senegal", "https://flagcdn.com/w80/sn.png",
+        "Mauritania", "https://flagcdn.com/w80/mr.png",
+        "Tunisia", "https://flagcdn.com/w80/tn.png"
+    );
+
+    private String resolveFlagUrl(String countryName) {
+        if (countryName == null || countryName.isBlank()) return null;
+        String url = COUNTRY_FLAG_URLS.get(countryName.trim());
+        if (url != null) return url;
+        String code = countryName.trim().toLowerCase().replaceAll("[^a-z]", "");
+        if (code.length() < 2) return null;
+        return "https://flagcdn.com/w80/" + code.substring(0, 2) + ".png";
+    }
+
+    private boolean isBlankServiceContent(String contentJson) {
+        if (contentJson == null || contentJson.isBlank()) {
+            return true;
+        }
+        String normalized = contentJson.replaceAll("\\s+", "");
+        return normalized.isEmpty()
+                || normalized.equals("null")
+                || normalized.equals("{}")
+                || normalized.equals("{\"categories\":[]}")
+                || normalized.equals("{\"boxes\":[]}");
     }
 }

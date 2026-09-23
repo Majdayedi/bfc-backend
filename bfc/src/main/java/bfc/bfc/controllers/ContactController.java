@@ -2,7 +2,9 @@ package bfc.bfc.controllers;
 
 import bfc.bfc.dto.ContactRequest;
 import bfc.bfc.entities.ContactMessage;
+import bfc.bfc.entities.ContactServiceOption;
 import bfc.bfc.repositories.ContactRepository;
+import bfc.bfc.repositories.ContactServiceOptionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,14 @@ public class ContactController {
 
     @Autowired
     private ContactRepository contactRepository;
+
+    @Autowired
+    private ContactServiceOptionRepository contactServiceOptionRepository;
+
+    @GetMapping("/service-options")
+    public ResponseEntity<List<ContactServiceOption>> getServiceOptions() {
+        return ResponseEntity.ok(contactServiceOptionRepository.findAllByOrderByDisplayOrderAsc());
+    }
 
     @PostMapping("/submit")
     public ResponseEntity<ContactMessage> submitContact(@RequestBody ContactRequest request) {

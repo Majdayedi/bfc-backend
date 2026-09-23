@@ -47,6 +47,11 @@ public class TeamMember {
 
     @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "team_member_roles", joinColumns = @JoinColumn(name = "team_member_id"))
+    @Column(name = "role_type", nullable = false)
+    private List<TeamMemberRole> roleTypes = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "team_member_extra_flags", joinColumns = @JoinColumn(name = "team_member_id"))
     private List<ExtraFlag> extraFlags = new ArrayList<>();
 }
