@@ -13,7 +13,7 @@ pipeline {
         stage('GIT') {
             steps {
                 // Stage 1: Checkout source code from repository
-                checkout main
+                checkout scm
             }
         }
 
