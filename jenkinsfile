@@ -1,48 +1,91 @@
 pipeline {
     agent any
 
+    environment {
+        // Adjust these to match your Docker Hub & Jenkins credentials settings
+        DOCKER_IMAGE   = "majdayedi/bfc"
+        DOCKER_TAG     = "${BUILD_NUMBER}"
+        REGISTRY_CREDS = "b8fe6aa3-9d53-47ce-9c57-bd916d0a5350" // Jenkins Credential ID for Docker Hub
+        SONAR_SERVER   = "SonarQube"              // SonarQube Server name in Jenkins Settings
+    }
+
     stages {
-        stage('Build') {
+        stage('GIT') {
             steps {
-                // Replace 'bfc-backend' with your actual subfolder name
-                dir('bfc') {
-                    sh 'mvn clean compile -DskipTests'
+                // Stage 1: Checkout source code from repository
+                checkout scm
+            }
+        }
+
+        stage('Construction') {
+            steps {
+                // Stage 2: Compile application source code
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test (JaCoCo)') {
+            steps {
+                // Stage 3: Run unit tests and generate JaCoCo coverage report
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    // Record coverage results using the Jenkins JaCoCo Plugin
+                    jacoco(
+                        execPattern: '**/target/jacoco.exec',
+                        classPattern: '**/target/classes',
+                        sourcePattern: '**/src/main/java'
+                    )
                 }
             }
         }
 
-        stage('Tests') {
+        stage('Analyse Qualité') {
             steps {
-                dir('bfc') {
-                    sh 'mvn test'
-                }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                dir('bfc') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh 'mvn sonar:sonar'
-                    }
+                // Stage 4: Run SonarQube code analysis using JaCoCo test metrics
+                withSonarQubeEnv(env.SONAR_SERVER) {
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
+                // Stage 5: Pause and wait for SonarQube Quality Gate response
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('Package') {
+        stage('Docker Image Construction') {
             steps {
-               dir('bfc') {
+                script {
+                    // Stage 6: Build final JAR file and Docker image
                     sh 'mvn package -DskipTests'
+                    dockerImage = docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    dockerImage.tag("latest")
                 }
             }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    // Stage 7: Authenticate and push images to Docker Registry
+                    docker.withRegistry('', env.REGISTRY_CREDS) {
+                        dockerImage.push("${env.DOCKER_TAG}")
+                        dockerImage.push("latest")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs() // Clean up Jenkins agent workspace after execution
         }
     }
 }
