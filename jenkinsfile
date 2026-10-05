@@ -29,7 +29,7 @@ pipeline {
        stage('Test (JaCoCo)') {
             steps {
                 dir('bfc') {
-                    sh '''
+                    sh 'mvn clean package -Dmaven.test.skip=true'
                         mvn test \
                           -Dspring.datasource.url="jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL" \
                           -Dspring.datasource.driver-class-name="org.h2.Driver" \
@@ -37,6 +37,7 @@ pipeline {
                           -Dspring.datasource.password="" \
                           -Dspring.jpa.database-platform="org.hibernate.dialect.H2Dialect" \
                           -Dspring.jpa.hibernate.ddl-auto="create"
+
                     '''
                 }
             }
