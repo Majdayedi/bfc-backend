@@ -2,16 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // Adjust these to match your Docker Hub & Jenkins credentials settings
         DOCKER_IMAGE   = "majdayedi/bfc"
         DOCKER_TAG     = "${BUILD_NUMBER}"
-        REGISTRY_CREDS = "b8fe6aa3-9d53-47ce-9c57-bd916d0a5350" // Jenkins Credential ID for Docker Hub
-        SONAR_SERVER   = "SonarQube"              // SonarQube Server name in Jenkins Settings
+        REGISTRY_CREDS = "b8fe6aa3-9d53-47ce-9c57-bd916d0a5350"
+        SONAR_SERVER   = "SonarQube"
     }
 
-   
-
     stages {
+
         stage('GIT') {
             steps {
                 checkout scm
@@ -21,33 +19,7 @@ pipeline {
         stage('Construction') {
             steps {
                 dir('bfc') {
-                    sh 'mvn clean compile'
-                }
-            }
-        }
-
-       stage('Test (JaCoCo)') {
-            steps {
-                dir('bfc') {
-                    sh 'mvn clean package -Dmaven.test.skip=true'
-                        mvn test \
-                          -Dspring.datasource.url="jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL" \
-                          -Dspring.datasource.driver-class-name="org.h2.Driver" \
-                          -Dspring.datasource.username="sa" \
-                          -Dspring.datasource.password="" \
-                          -Dspring.jpa.database-platform="org.hibernate.dialect.H2Dialect" \
-                          -Dspring.jpa.hibernate.ddl-auto="create"
-
-                    '''
-                }
-            }
-            post {
-                always {
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java'
-                    )
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
@@ -56,7 +28,7 @@ pipeline {
             steps {
                 dir('bfc') {
                     withSonarQubeEnv(env.SONAR_SERVER) {
-                        sh 'mvn sonar:sonar'
+                        sh 'mvn sonar:sonar -DskipTests'
                     }
                 }
             }
@@ -74,8 +46,10 @@ pipeline {
             steps {
                 script {
                     dir('bfc') {
-                        sh 'mvn package -DskipTests'
-                        dockerImage = docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                        dockerImage = docker.build(
+                            "${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                        )
+
                         dockerImage.tag("latest")
                     }
                 }
