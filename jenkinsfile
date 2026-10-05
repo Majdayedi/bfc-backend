@@ -9,29 +9,31 @@ pipeline {
         SONAR_SERVER   = "SonarQube"              // SonarQube Server name in Jenkins Settings
     }
 
+   
+
     stages {
         stage('GIT') {
             steps {
-                // Stage 1: Checkout source code from repository
                 checkout scm
             }
         }
 
         stage('Construction') {
             steps {
-                // Stage 2: Compile application source code
-                sh 'mvn clean compile'
+                dir('bfc') {
+                    sh 'mvn clean compile'
+                }
             }
         }
 
         stage('Test (JaCoCo)') {
             steps {
-                // Stage 3: Run unit tests and generate JaCoCo coverage report
-                sh 'mvn test'
+                dir('bfc') {
+                    sh 'mvn test'
+                }
             }
             post {
                 always {
-                    // Record coverage results using the Jenkins JaCoCo Plugin
                     jacoco(
                         execPattern: '**/target/jacoco.exec',
                         classPattern: '**/target/classes',
@@ -43,16 +45,16 @@ pipeline {
 
         stage('Analyse Qualité') {
             steps {
-                // Stage 4: Run SonarQube code analysis using JaCoCo test metrics
-                withSonarQubeEnv(env.SONAR_SERVER) {
-                    sh 'mvn sonar:sonar'
+                dir('bfc') {
+                    withSonarQubeEnv(env.SONAR_SERVER) {
+                        sh 'mvn sonar:sonar'
+                    }
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                // Stage 5: Pause and wait for SonarQube Quality Gate response
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -62,10 +64,11 @@ pipeline {
         stage('Docker Image Construction') {
             steps {
                 script {
-                    // Stage 6: Build final JAR file and Docker image
-                    sh 'mvn package -DskipTests'
-                    dockerImage = docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
-                    dockerImage.tag("latest")
+                    dir('bfc') {
+                        sh 'mvn package -DskipTests'
+                        dockerImage = docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                        dockerImage.tag("latest")
+                    }
                 }
             }
         }
@@ -73,7 +76,6 @@ pipeline {
         stage('Docker Push') {
             steps {
                 script {
-                    // Stage 7: Authenticate and push images to Docker Registry
                     docker.withRegistry('', env.REGISTRY_CREDS) {
                         dockerImage.push("${env.DOCKER_TAG}")
                         dockerImage.push("latest")
@@ -85,7 +87,7 @@ pipeline {
 
     post {
         always {
-            cleanWs() // Clean up Jenkins agent workspace after execution
+            cleanWs()
         }
     }
 }
