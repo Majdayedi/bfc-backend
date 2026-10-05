@@ -29,7 +29,15 @@ pipeline {
         stage('Test (JaCoCo)') {
             steps {
                 dir('bfc') {
-                    sh 'mvn test'
+                    // Overrides spring datasource settings directly in the CLI using an in-memory database
+                    sh '''
+                        mvn test \
+                          -Dspring.datasource.url="jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL" \
+                          -Dspring.datasource.driver-class-name="org.h2.Driver" \
+                          -Dspring.datasource.username="sa" \
+                          -Dspring.datasource.password="" \
+                          -Dspring.jpa.database-platform="org.hibernate.dialect.H2Dialect"
+                    '''
                 }
             }
             post {
