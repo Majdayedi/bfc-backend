@@ -36,7 +36,7 @@ pipeline {
                           -Dspring.datasource.username="sa" \
                           -Dspring.datasource.password="" \
                           -Dspring.jpa.database-platform="org.hibernate.dialect.H2Dialect" \
-                          -Dspring.jpa.hibernate.ddl-auto="create-drop"
+                          -Dspring.jpa.hibernate.ddl-auto="create"
                     '''
                 }
             }
