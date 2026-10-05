@@ -5,7 +5,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Replace 'bfc-backend' with your actual subfolder name
-                dir('bfc\pom.xml') {
+                dir('bfc') {
                     sh 'mvn clean compile -DskipTests'
                 }
             }
@@ -13,7 +13,7 @@ pipeline {
 
         stage('Tests') {
             steps {
-                dir('bfc\pom.xml') {
+                dir('bfc') {
                     sh 'mvn test'
                 }
             }
@@ -21,7 +21,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                dir('bfc\pom.xml') {
+                dir('bfc') {
                     withSonarQubeEnv('SonarQube') {
                         sh 'mvn sonar:sonar'
                     }
@@ -39,7 +39,7 @@ pipeline {
 
         stage('Package') {
             steps {
-               dir('bfc\pom.xml') {
+               dir('bfc') {
                     sh 'mvn package -DskipTests'
                 }
             }
