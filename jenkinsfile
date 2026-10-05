@@ -24,15 +24,13 @@ pipeline {
             }
         }
 
-        stage('Analyse Qualité') {
-            steps {
-                dir('bfc') {
-                    withSonarQubeEnv(env.SONAR_SERVER) {
-                        sh 'mvn sonar:sonar -DskipTests'
-                    }
-                }
-            }
+       stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQube') { // <-- Fails here because 'SonarQube' isn't configured in Jenkins
+            sh 'mvn sonar:sonar'
         }
+    }
+}
 
         stage('Quality Gate') {
             steps {
